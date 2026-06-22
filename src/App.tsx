@@ -68,7 +68,7 @@ function App() {
 
   const handleDelta = useCallback(() => {
     if (!selectedId || !responseText.trim()) return
-    send({ type: 'delta', requestId: selectedId, content: responseText.trim() })
+    send({ type: 'delta', requestId: selectedId, content: responseText.trim() + '\n' })
     setResponseText('')
   }, [selectedId, responseText, send])
 
