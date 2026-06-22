@@ -1,121 +1,110 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
+import { useState, useCallback } from 'react'
+import type { WsServerMessage } from '../shared/types'
+import { useWebSocket } from './hooks/useWebSocket'
+import { RequestQueue } from './components/RequestQueue'
+import { PromptDisplay } from './components/PromptDisplay'
+import { ResponseInput } from './components/ResponseInput'
 import './App.css'
 
+export type RequestItem = {
+  requestId: string
+  messages: import('../shared/types').ChatMessage[]
+  model: string
+  createdAt: number
+}
+
 function App() {
-  const [count, setCount] = useState(0)
+  const [requests, setRequests] = useState<RequestItem[]>([])
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [responseText, setResponseText] = useState('')
+
+  const handleMessage = useCallback((msg: WsServerMessage) => {
+    if (msg.type === 'request') {
+      setRequests((prev) => {
+        const next = [...prev, msg]
+        if (prev.length === 0) {
+          setSelectedId(msg.requestId)
+        }
+        return next
+      })
+    } else if (msg.type === 'timeout') {
+      setRequests((prev) => {
+        const next = prev.filter((r) => r.requestId !== msg.requestId)
+        setSelectedId((id) => {
+          if (id === msg.requestId) {
+            return next[0]?.requestId ?? null
+          }
+          return id
+        })
+        return next
+      })
+    }
+  }, [])
+
+  const { status, send } = useWebSocket(handleMessage)
+
+  const selectedRequest = requests.find((r) => r.requestId === selectedId) ?? null
+
+  const handleSelect = useCallback((id: string) => {
+    setSelectedId(id)
+    setResponseText('')
+  }, [])
+
+  const handleSubmit = useCallback(() => {
+    if (!selectedId || !responseText.trim()) return
+
+    send({ type: 'response', requestId: selectedId, content: responseText.trim() })
+
+    setRequests((prev) => {
+      const next = prev.filter((r) => r.requestId !== selectedId)
+      setSelectedId(next[0]?.requestId ?? null)
+      return next
+    })
+    setResponseText('')
+  }, [selectedId, responseText, send])
+
+  const statusLabel = {
+    connecting: { text: '再接続中…', cls: 'status-connecting' },
+    open: { text: '接続中', cls: 'status-open' },
+    closed: { text: '切断', cls: 'status-closed' },
+  }[status]
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <div className="layout">
+      <header className="header">
+        <h1 className="header-title">humanllm</h1>
+        <span className={`header-status ${statusLabel.cls}`}>{statusLabel.text}</span>
+      </header>
 
-      <div className="ticks"></div>
+      <div className="main">
+        <aside className="sidebar">
+          <RequestQueue
+            requests={requests}
+            selectedId={selectedId}
+            onSelect={handleSelect}
+          />
+        </aside>
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+        <section className="content">
+          {selectedRequest ? (
+            <>
+              <PromptDisplay messages={selectedRequest.messages} />
+              <ResponseInput
+                value={responseText}
+                onChange={setResponseText}
+                onSubmit={handleSubmit}
+                disabled={false}
+              />
+            </>
+          ) : (
+            <div className="content-empty">
+              <p>API リクエストの到着を待っています…</p>
+              <code>POST /v1/chat/completions</code>
+            </div>
+          )}
+        </section>
+      </div>
+    </div>
   )
 }
 
