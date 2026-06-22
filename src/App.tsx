@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react'
 import type { WsServerMessage } from '../shared/types'
 import { useWebSocket } from './hooks/useWebSocket'
 import { RequestQueue } from './components/RequestQueue'
+import { HistoryList } from './components/HistoryList'
 import { PromptDisplay } from './components/PromptDisplay'
 import { ResponseInput } from './components/ResponseInput'
 import './App.css'
@@ -13,10 +14,17 @@ export type RequestItem = {
   createdAt: number
 }
 
+export type HistoryItem = RequestItem & {
+  response: string
+  completedAt: number
+}
+
 function App() {
   const [requests, setRequests] = useState<RequestItem[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [responseText, setResponseText] = useState('')
+  const [history, setHistory] = useState<HistoryItem[]>([])
+  const [selectedHistoryId, setSelectedHistoryId] = useState<string | null>(null)
 
   const handleMessage = useCallback((msg: WsServerMessage) => {
     if (msg.type === 'request') {
@@ -44,18 +52,35 @@ function App() {
   const { status, send } = useWebSocket(handleMessage)
 
   const selectedRequest = requests.find((r) => r.requestId === selectedId) ?? null
+  const selectedHistory = history.find((h) => h.requestId === selectedHistoryId) ?? null
 
   const handleSelect = useCallback((id: string) => {
     setSelectedId(id)
+    setSelectedHistoryId(null)
+    setResponseText('')
+  }, [])
+
+  const handleSelectHistory = useCallback((id: string) => {
+    setSelectedHistoryId(id)
+    setSelectedId(null)
     setResponseText('')
   }, [])
 
   const handleSubmit = useCallback(() => {
     if (!selectedId || !responseText.trim()) return
 
-    send({ type: 'response', requestId: selectedId, content: responseText.trim() })
+    const content = responseText.trim()
+    send({ type: 'response', requestId: selectedId, content })
 
     setRequests((prev) => {
+      const completed = prev.find((r) => r.requestId === selectedId)
+      if (completed) {
+        setHistory((h) => [
+          { ...completed, response: content, completedAt: Math.floor(Date.now() / 1000) },
+          ...h,
+        ])
+        setSelectedHistoryId(completed.requestId)
+      }
       const next = prev.filter((r) => r.requestId !== selectedId)
       setSelectedId(next[0]?.requestId ?? null)
       return next
@@ -83,6 +108,11 @@ function App() {
             selectedId={selectedId}
             onSelect={handleSelect}
           />
+          <HistoryList
+            history={history}
+            selectedId={selectedHistoryId}
+            onSelect={handleSelectHistory}
+          />
         </aside>
 
         <section className="content">
@@ -96,6 +126,13 @@ function App() {
                 disabled={false}
               />
             </>
+          ) : selectedHistory ? (
+            <PromptDisplay
+              messages={[
+                ...selectedHistory.messages,
+                { role: 'assistant', content: selectedHistory.response },
+              ]}
+            />
           ) : (
             <div className="content-empty">
               <p>API リクエストの到着を待っています…</p>

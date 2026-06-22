@@ -150,6 +150,16 @@ body {
   margin-top: 4px;
 }
 
+/* History */
+.history {
+  padding: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.history-item .queue-item-meta {
+  color: #6a9f6a;
+}
+
 /* Content */
 .content {
   flex: 1;
