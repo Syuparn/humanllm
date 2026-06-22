@@ -11,7 +11,7 @@ export function HistoryList({ history, selectedId, onSelect }: Props) {
 
   return (
     <div className="history">
-      <div className="queue-header">履歴</div>
+      <div className="queue-header">History</div>
       <ul className="queue-list">
         {history.map((item) => {
           const lastUserMsg = [...item.messages].reverse().find((m) => m.role === 'user')
@@ -22,10 +22,10 @@ export function HistoryList({ history, selectedId, onSelect }: Props) {
               onClick={() => onSelect(item.requestId)}
             >
               <div className="queue-item-preview">
-                {lastUserMsg?.content.slice(0, 60) ?? '(メッセージなし)'}
+                {lastUserMsg?.content.slice(0, 60) ?? '(no message)'}
                 {(lastUserMsg?.content.length ?? 0) > 60 ? '…' : ''}
               </div>
-              <div className="queue-item-meta">✓ 返信済み</div>
+              <div className="queue-item-meta">✓ Replied</div>
             </li>
           )
         })}

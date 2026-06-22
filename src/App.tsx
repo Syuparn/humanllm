@@ -95,9 +95,9 @@ function App() {
   }, [selectedId, responseText, send])
 
   const statusLabel = {
-    connecting: { text: '再接続中…', cls: 'status-connecting' },
-    open: { text: '接続中', cls: 'status-open' },
-    closed: { text: '切断', cls: 'status-closed' },
+    connecting: { text: 'Reconnecting…', cls: 'status-connecting' },
+    open: { text: 'Connected', cls: 'status-open' },
+    closed: { text: 'Disconnected', cls: 'status-closed' },
   }[status]
 
   return (
@@ -142,7 +142,7 @@ function App() {
             />
           ) : (
             <div className="content-empty">
-              <p>API リクエストの到着を待っています…</p>
+              <p>Waiting for an API request…</p>
               <code>POST /v1/chat/completions</code>
             </div>
           )}

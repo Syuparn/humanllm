@@ -26,32 +26,32 @@ export function ResponseInput({ value, onChange, onSubmit, onDelta, disabled }: 
 
   return (
     <div className="response-input">
-      <div className="response-input-label">あなたの回答</div>
+      <div className="response-input-label">Your response</div>
       <textarea
         ref={textareaRef}
         className="response-textarea"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={handleKeyDown}
-        placeholder={disabled ? 'リクエストを選択してください…' : '回答を入力してください…'}
+        placeholder={disabled ? 'Select a request…' : 'Type your response…'}
         disabled={disabled}
         rows={6}
       />
       <div className="response-actions">
-        <span className="response-hint">Ctrl+Enter で送信</span>
+        <span className="response-hint">Ctrl+Enter to send</span>
         <button
           className="response-delta"
           onClick={onDelta}
           disabled={disabled || !value.trim()}
         >
-          途中経過を送信
+          Send progress
         </button>
         <button
           className="response-submit"
           onClick={onSubmit}
           disabled={disabled || !value.trim()}
         >
-          送信
+          Send
         </button>
       </div>
     </div>

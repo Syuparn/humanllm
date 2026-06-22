@@ -11,7 +11,7 @@ export function RequestQueue({ requests, selectedId, onSelect }: Props) {
     return (
       <div className="queue empty">
         <span className="queue-empty-icon">⏳</span>
-        <p>待機中のリクエストはありません</p>
+        <p>No pending requests</p>
       </div>
     )
   }
@@ -19,7 +19,7 @@ export function RequestQueue({ requests, selectedId, onSelect }: Props) {
   return (
     <div className="queue">
       <div className="queue-header">
-        待機中リクエスト <span className="queue-badge">{requests.length}</span>
+        Pending requests <span className="queue-badge">{requests.length}</span>
       </div>
       <ul className="queue-list">
         {requests.map((req) => {
@@ -35,10 +35,10 @@ export function RequestQueue({ requests, selectedId, onSelect }: Props) {
               onClick={() => onSelect(req.requestId)}
             >
               <div className="queue-item-preview">
-                {lastUserMsg?.content.slice(0, 60) ?? '(メッセージなし)'}
+                {lastUserMsg?.content.slice(0, 60) ?? '(no message)'}
                 {(lastUserMsg?.content.length ?? 0) > 60 ? '…' : ''}
               </div>
-              <div className="queue-item-meta">{elapsed}秒前</div>
+              <div className="queue-item-meta">{elapsed}s ago</div>
             </li>
           )
         })}
