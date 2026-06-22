@@ -276,6 +276,23 @@ body {
   color: var(--text-muted);
 }
 
+.response-delta {
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 8px 18px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.response-delta:hover:not(:disabled) { background: rgba(99,102,241,0.12); }
+.response-delta:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .response-submit {
   background: var(--accent);
   color: #fff;

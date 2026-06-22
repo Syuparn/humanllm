@@ -1,7 +1,7 @@
 import type { WebSocket } from 'ws'
 import type { WsResponseMessage } from '../../shared/types'
 import { addClient, removeClient } from './clients'
-import { resolvePending } from '../store/pendingRequests'
+import { resolvePending, deltaPending } from '../store/pendingRequests'
 
 export function handleWebSocket(ws: WebSocket): void {
   addClient(ws)
@@ -13,6 +13,11 @@ export function handleWebSocket(ws: WebSocket): void {
         const ok = resolvePending(msg.requestId, msg.content)
         if (!ok) {
           console.warn(`[ws] no pending request for id=${msg.requestId}`)
+        }
+      } else if (msg.type === 'delta') {
+        const ok = deltaPending(msg.requestId, msg.content)
+        if (!ok) {
+          console.warn(`[ws] no pending request for delta id=${msg.requestId}`)
         }
       }
     } catch (e) {

@@ -4,10 +4,11 @@ type Props = {
   value: string
   onChange: (v: string) => void
   onSubmit: () => void
+  onDelta: () => void
   disabled: boolean
 }
 
-export function ResponseInput({ value, onChange, onSubmit, disabled }: Props) {
+export function ResponseInput({ value, onChange, onSubmit, onDelta, disabled }: Props) {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
@@ -38,6 +39,13 @@ export function ResponseInput({ value, onChange, onSubmit, disabled }: Props) {
       />
       <div className="response-actions">
         <span className="response-hint">Ctrl+Enter で送信</span>
+        <button
+          className="response-delta"
+          onClick={onDelta}
+          disabled={disabled || !value.trim()}
+        >
+          途中経過を送信
+        </button>
         <button
           className="response-submit"
           onClick={onSubmit}

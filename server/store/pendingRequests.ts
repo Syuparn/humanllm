@@ -1,10 +1,12 @@
 import type { ChatMessage } from '../../shared/types'
 
 type PendingRequest = {
-  resolve: (content: string) => void
+  sendDelta: (text: string) => void
+  complete: (fullText: string) => void
   reject: (reason: Error) => void
   messages: ChatMessage[]
   createdAt: number
+  accumulated: string
 }
 
 const pending = new Map<string, PendingRequest>()
@@ -12,17 +14,37 @@ const pending = new Map<string, PendingRequest>()
 export function addPending(
   requestId: string,
   messages: ChatMessage[],
-  resolve: (content: string) => void,
+  sendDelta: (text: string) => void,
+  complete: (fullText: string) => void,
   reject: (reason: Error) => void,
 ) {
-  pending.set(requestId, { resolve, reject, messages, createdAt: Date.now() })
+  pending.set(requestId, {
+    sendDelta,
+    complete,
+    reject,
+    messages,
+    createdAt: Date.now(),
+    accumulated: '',
+  })
 }
 
-export function resolvePending(requestId: string, content: string): boolean {
+export function deltaPending(requestId: string, text: string): boolean {
+  const req = pending.get(requestId)
+  if (!req) return false
+  req.accumulated += text
+  req.sendDelta(text)
+  return true
+}
+
+export function resolvePending(requestId: string, finalText: string): boolean {
   const req = pending.get(requestId)
   if (!req) return false
   pending.delete(requestId)
-  req.resolve(content)
+  if (finalText) {
+    req.accumulated += finalText
+    req.sendDelta(finalText)
+  }
+  req.complete(req.accumulated)
   return true
 }
 

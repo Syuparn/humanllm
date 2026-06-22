@@ -20,8 +20,6 @@ export type WsTimeoutMessage = {
 export type WsServerMessage = WsRequestMessage | WsTimeoutMessage
 
 // Frontend → Server
-export type WsResponseMessage = {
-  type: 'response'
-  requestId: string
-  content: string
-}
+export type WsResponseMessage =
+  | { type: 'response'; requestId: string; content: string }
+  | { type: 'delta'; requestId: string; content: string }

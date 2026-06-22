@@ -66,6 +66,12 @@ function App() {
     setResponseText('')
   }, [])
 
+  const handleDelta = useCallback(() => {
+    if (!selectedId || !responseText.trim()) return
+    send({ type: 'delta', requestId: selectedId, content: responseText.trim() })
+    setResponseText('')
+  }, [selectedId, responseText, send])
+
   const handleSubmit = useCallback(() => {
     if (!selectedId || !responseText.trim()) return
 
@@ -123,6 +129,7 @@ function App() {
                 value={responseText}
                 onChange={setResponseText}
                 onSubmit={handleSubmit}
+                onDelta={handleDelta}
                 disabled={false}
               />
             </>
