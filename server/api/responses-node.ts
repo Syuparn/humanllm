@@ -23,10 +23,14 @@ function normalizeContent(content: unknown): string {
 
 // Responses API input には role を持たない tool アイテム（function_call, function_call_output 等）が混在する。
 // それらを ChatMessage に変換して人間が読める形にする。
+// developer ロールは instructions 由来のシステムプロンプトなので system として扱う。
 function normalizeInputItem(m: Record<string, unknown>): ChatMessage | null {
   const role = m.role as string | undefined
   if (role === 'user' || role === 'assistant' || role === 'system') {
     return { role, content: normalizeContent(m.content) }
+  }
+  if (role === 'developer') {
+    return { role: 'system', content: normalizeContent(m.content) }
   }
   const type = m.type as string | undefined
   if (type === 'function_call') {
@@ -42,8 +46,9 @@ function normalizeInputItem(m: Record<string, unknown>): ChatMessage | null {
   if (type === 'local_shell_call_output') {
     return { role: 'user', content: `[local_shell_call_output]\n${String(m.output ?? '')}` }
   }
-  if (type === 'message' && (m.role === 'user' || m.role === 'assistant' || m.role === 'system')) {
-    return { role: m.role as ChatMessage['role'], content: normalizeContent(m.content) }
+  if (type === 'message' && (m.role === 'user' || m.role === 'assistant' || m.role === 'system' || m.role === 'developer')) {
+    const msgRole = m.role === 'developer' ? 'system' : m.role as ChatMessage['role']
+    return { role: msgRole, content: normalizeContent(m.content) }
   }
   return null
 }
@@ -100,11 +105,18 @@ export async function handleResponsesNode(req: IncomingMessage, res: ServerRespo
 
   const { model = 'human', input, stream = false } = body
   const tools = (body as Record<string, unknown>).tools as Array<Record<string, unknown>> | undefined
+  const instructions = (body as Record<string, unknown>).instructions as string | undefined
   console.log(`[responses] model=${model} stream=${stream} tools=${tools?.map((t) => t.name ?? (t.function as Record<string, unknown>)?.name).join(',') ?? 'none'}`)
 
-  const messages: ChatMessage[] = typeof input === 'string'
+  const inputMessages: ChatMessage[] = typeof input === 'string'
     ? [{ role: 'user', content: input }]
     : input.flatMap((m) => { const msg = normalizeInputItem(m); return msg ? [msg] : [] })
+
+  // instructions はシステムプロンプト。input 内に同等の system/developer メッセージがなければ先頭に追加する。
+  const hasSystemMessage = inputMessages.some((m) => m.role === 'system')
+  const messages: ChatMessage[] = instructions && !hasSystemMessage
+    ? [{ role: 'system', content: instructions }, ...inputMessages]
+    : inputMessages
 
   const requestId = crypto.randomUUID()
   const respId = `resp_${requestId}`
