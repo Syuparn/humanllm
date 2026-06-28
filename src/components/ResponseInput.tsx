@@ -5,12 +5,11 @@ type Props = {
   onChange: (v: string) => void
   onSubmit: () => void
   onDelta: () => void
-  onFunctionCall: (name: string, args: string) => void
-  onLocalShellCall: (command: string[], workingDirectory: string | null) => void
+  onCommand: (command: string[], workingDirectory: string | null) => void
   disabled: boolean
 }
 
-export function ResponseInput({ value, onChange, onSubmit, onDelta, onFunctionCall, onLocalShellCall, disabled }: Props) {
+export function ResponseInput({ value, onChange, onSubmit, onDelta, onCommand, disabled }: Props) {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const [toolMode, setToolMode] = useState<'function_call' | 'local_shell_call' | null>(null)
   const [fnName, setFnName] = useState('')
@@ -35,19 +34,11 @@ export function ResponseInput({ value, onChange, onSubmit, onDelta, onFunctionCa
     setToolMode((prev) => (prev === mode ? null : mode))
   }
 
-  const handleSendFunctionCall = () => {
-    if (!fnName.trim()) return
-    onFunctionCall(fnName.trim(), fnArgs.trim() || '{}')
-    setFnName('')
-    setFnArgs('{}')
-    setToolMode(null)
-  }
-
   const handleSendShellCall = () => {
     if (!shellCmd.trim()) return
     const command = ['sh', '-c', shellCmd.trim()]
     const workingDirectory = shellDir.trim() || null
-    onLocalShellCall(command, workingDirectory)
+    onCommand(command, workingDirectory)
     setShellCmd('')
     setShellDir('')
     setToolMode(null)
@@ -90,12 +81,6 @@ export function ResponseInput({ value, onChange, onSubmit, onDelta, onFunctionCa
               rows={3}
             />
           </div>
-          <div className="tool-form-actions">
-            <button className="tool-form-cancel" onClick={() => setToolMode(null)}>Cancel</button>
-            <button className="tool-form-send fn-send" onClick={handleSendFunctionCall} disabled={!fnName.trim()}>
-              Send function_call
-            </button>
-          </div>
         </div>
       )}
 
@@ -126,7 +111,7 @@ export function ResponseInput({ value, onChange, onSubmit, onDelta, onFunctionCa
           <div className="tool-form-actions">
             <button className="tool-form-cancel" onClick={() => setToolMode(null)}>Cancel</button>
             <button className="tool-form-send sh-send" onClick={handleSendShellCall} disabled={!shellCmd.trim()}>
-              Send local_shell_call
+              Send command
             </button>
           </div>
         </div>
@@ -138,17 +123,9 @@ export function ResponseInput({ value, onChange, onSubmit, onDelta, onFunctionCa
           className={`btn-tool-call btn-shell${toolMode === 'local_shell_call' ? ' active' : ''}`}
           onClick={() => handleToggleTool('local_shell_call')}
           disabled={disabled}
-          title="Send as local_shell_call"
+          title="Send Command"
         >
-          local_shell_call
-        </button>
-        <button
-          className={`btn-tool-call btn-fn${toolMode === 'function_call' ? ' active' : ''}`}
-          onClick={() => handleToggleTool('function_call')}
-          disabled={disabled}
-          title="Send as function_call"
-        >
-          function_call
+          Run Command
         </button>
         <button
           className="response-delta"

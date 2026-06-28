@@ -96,14 +96,7 @@ function App() {
     completeRequest(content)
   }, [selectedId, responseText, send, completeRequest])
 
-  const handleFunctionCall = useCallback((name: string, args: string) => {
-    if (!selectedId) return
-    const callId = crypto.randomUUID()
-    send({ type: 'function_call', requestId: selectedId, callId, name, arguments: args })
-    completeRequest(`[function_call: ${name}]`)
-  }, [selectedId, send, completeRequest])
-
-  const handleLocalShellCall = useCallback((command: string[], workingDirectory: string | null) => {
+  const handleCommand = useCallback((command: string[], workingDirectory: string | null) => {
     if (!selectedId) return
     const callId = crypto.randomUUID()
     // local_shell_call は codex-rs の build_tool_call で無視されるため、
@@ -152,8 +145,7 @@ function App() {
                 onChange={setResponseText}
                 onSubmit={handleSubmit}
                 onDelta={handleDelta}
-                onFunctionCall={handleFunctionCall}
-                onLocalShellCall={handleLocalShellCall}
+                onCommand={handleCommand}
                 disabled={false}
               />
             </>
