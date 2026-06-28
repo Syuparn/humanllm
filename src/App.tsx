@@ -72,17 +72,12 @@ function App() {
     setResponseText('')
   }, [selectedId, responseText, send])
 
-  const handleSubmit = useCallback(() => {
-    if (!selectedId || !responseText.trim()) return
-
-    const content = responseText.trim()
-    send({ type: 'response', requestId: selectedId, content })
-
+  const completeRequest = useCallback((responseLabel: string) => {
     setRequests((prev) => {
       const completed = prev.find((r) => r.requestId === selectedId)
       if (completed) {
         setHistory((h) => [
-          { ...completed, response: content, completedAt: Math.floor(Date.now() / 1000) },
+          { ...completed, response: responseLabel, completedAt: Math.floor(Date.now() / 1000) },
           ...h,
         ])
         setSelectedHistoryId(completed.requestId)
@@ -92,7 +87,34 @@ function App() {
       return next
     })
     setResponseText('')
-  }, [selectedId, responseText, send])
+  }, [selectedId])
+
+  const handleSubmit = useCallback(() => {
+    if (!selectedId || !responseText.trim()) return
+    const content = responseText.trim()
+    send({ type: 'response', requestId: selectedId, content })
+    completeRequest(content)
+  }, [selectedId, responseText, send, completeRequest])
+
+  const handleFunctionCall = useCallback((name: string, args: string) => {
+    if (!selectedId) return
+    const callId = crypto.randomUUID()
+    send({ type: 'function_call', requestId: selectedId, callId, name, arguments: args })
+    completeRequest(`[function_call: ${name}]`)
+  }, [selectedId, send, completeRequest])
+
+  const handleLocalShellCall = useCallback((command: string[], workingDirectory: string | null) => {
+    if (!selectedId) return
+    const callId = crypto.randomUUID()
+    // local_shell_call は codex-rs の build_tool_call で無視されるため、
+    // 実際に登録されているツール shell_command (function_call) として送信する。
+    // command = ["sh", "-c", "script"] で渡されるので、スクリプト部分を取り出す。
+    const shellScript = command.length >= 3 ? command[2] : command.join(' ')
+    const argsObj: Record<string, string> = { command: shellScript }
+    if (workingDirectory) argsObj.workdir = workingDirectory
+    send({ type: 'function_call', requestId: selectedId, callId, name: 'shell_command', arguments: JSON.stringify(argsObj) })
+    completeRequest(`[shell_command: ${shellScript}]`)
+  }, [selectedId, send, completeRequest])
 
   const statusLabel = {
     connecting: { text: 'Reconnecting…', cls: 'status-connecting' },
@@ -130,6 +152,8 @@ function App() {
                 onChange={setResponseText}
                 onSubmit={handleSubmit}
                 onDelta={handleDelta}
+                onFunctionCall={handleFunctionCall}
+                onLocalShellCall={handleLocalShellCall}
                 disabled={false}
               />
             </>

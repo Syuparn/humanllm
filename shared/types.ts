@@ -3,6 +3,10 @@ export type ChatMessage = {
   content: string
 }
 
+export type ToolCallItem =
+  | { type: 'function_call'; callId: string; name: string; arguments: string }
+  | { type: 'local_shell_call'; callId: string; command: string[]; workingDirectory: string | null }
+
 // Server → Frontend
 export type WsRequestMessage = {
   type: 'request'
@@ -23,3 +27,5 @@ export type WsServerMessage = WsRequestMessage | WsTimeoutMessage
 export type WsResponseMessage =
   | { type: 'response'; requestId: string; content: string }
   | { type: 'delta'; requestId: string; content: string }
+  | { type: 'function_call'; requestId: string; callId: string; name: string; arguments: string }
+  | { type: 'local_shell_call'; requestId: string; callId: string; command: string[]; workingDirectory: string | null }

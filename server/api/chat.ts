@@ -11,6 +11,7 @@ export const app = new Hono()
 app.use('*', cors())
 
 app.post('/v1/chat/completions', async (c) => {
+  console.log('[chat] POST /v1/chat/completions')
   const body = await c.req.json<{
     model?: string
     messages: ChatMessage[]
